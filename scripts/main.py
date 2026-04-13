@@ -24,7 +24,7 @@ def get_concept_details(db_path, concept_id):
             json_mapping["difficulty"] = row[1]
             json_mapping["description"] = row[2]
         else:
-            for key in json_mapping:
+            for key in json_mapping: 
                 json_mapping[key] = "None"
             json_mapping['status'] = "Failed"
 

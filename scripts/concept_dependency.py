@@ -201,7 +201,7 @@ def decide_difficulty(mastery_value: float, behavior: Dict):
     else:
         difficulty = "hard"
 
-    # Behaviour adjustment (IMPORTANT)
+    # Behaviour adjustment 
     behavior_score = behavior.get("behavior_score", 0)
 
     if behavior_score >= 0.7:
