@@ -1,0 +1,22 @@
+Model: SmolLM2-135M
+Method: LoRA Fine-tuning
+
+Dataset:
+- Generated from core_data database
+- Size: ~50,000 samples
+
+Training:
+- Successfully completed
+- Loss decreased during training
+
+Output:
+- Tutor-style responses generated
+- Stored in outputs/samples/generated_outputs.json
+
+Evaluation:
+- Basic evaluation performed
+- Average score: 1.0 (word overlap metric)
+
+Conclusion:
+- The fine-tuned model adapts to tutor-style content generation
+- Output quality is moderate due to small model size

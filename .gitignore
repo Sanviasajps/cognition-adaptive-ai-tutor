@@ -1,5 +1,6 @@
 # ignore database files
 *.db
+Updated_DB/
 
 # python cache
 __pycache__/
@@ -8,7 +9,3 @@ __pycache__/
 # large folders
 models/
 training_data/
-outputs/
-
-*.db
-Updated_DB/
