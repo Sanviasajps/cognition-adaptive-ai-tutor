@@ -1,49 +1,61 @@
 import json
 from pathlib import Path
 
-DATA_PATH = Path("training_data/llm_tutor/tutor_test.jsonl")
-
-def simple_score(pred, gold):
-    p = set(pred.lower().split())
-    g = set(gold.lower().split())
-    if not g:
-        return 0
-    return len(p & g) / len(g)
+# Use generated outputs (NOT dataset)
+SAMPLES_PATH = Path("outputs/samples/generated_outputs.json")
 
 def main():
-    print("Running evaluation...")
+    print("Running advanced evaluation...")
 
-    scores = []
+    # load generated outputs
+    with open(SAMPLES_PATH, "r", encoding="utf-8") as f:
+        samples = json.load(f)
 
-    with open(DATA_PATH, "r", encoding="utf-8") as f:
-        for i, line in enumerate(f):
-            if i >= 20:   # small sample
-                break
+    total = len(samples)
 
-            row = json.loads(line)
+    valid = 0
+    repeated = 0
+    lengths = []
 
-            pred = row["output"]
-            gold = row["output"]
+    seen = set()
 
-            score = simple_score(pred, gold)
-            scores.append(score)
+    for s in samples:
+        text = s.strip()
 
-    avg = sum(scores) / len(scores)
+        # ✔ check valid output
+        if len(text) > 20:
+            valid += 1
 
-    print("\nEvaluation Result:")
-    print("Samples:", len(scores))
-    print("Average Score:", round(avg, 2))
+        # ✔ check repetition
+        if text in seen:
+            repeated += 1
+        else:
+            seen.add(text)
 
-    # ✅ SAVE RESULT (fixed)
+        # ✔ track length
+        lengths.append(len(text))
+
+    # metrics
+    valid_percent = valid / total
+    repetition_rate = repeated / total
+    avg_length = sum(lengths) / total
+
     result = {
-        "average_score": avg,
-        "samples": len(scores)
+        "total_samples": total,
+        "valid_percent": round(valid_percent, 2),
+        "repetition_rate": round(repetition_rate, 2),
+        "avg_length": round(avg_length, 2)
     }
 
-    with open("outputs/metrics/eval.json", "w") as f:
+    print("\nEvaluation Result:")
+    print(result)
+
+    # save result
+    with open("outputs/metrics/llm_evaluation.json", "w") as f:
         json.dump(result, f, indent=2)
 
-    print("Saved to outputs/metrics/eval.json")
+    print("\nSaved to outputs/metrics/llm_evaluation.json")
+
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,10 @@
+{"type": "explanation", "text": "A variable is used to store a value in programming."}
+{"type": "explanation", "text": "In Python, x = 10 creates a variable."}
+{"type": "mcq", "text": "What is a variable? A) Value B) Storage C) Loop D) Function"}
+{"type": "mcq", "text": "Which stores data? A) Variable B) Loop C) Class D) Object"}
+{"type": "debug", "text": "Fix error in x == 5 instead of x = 5"}
+{"type": "debug", "text": "Incorrect indentation causes error"}
+{"type": "flashcard", "text": "Front: Variable | Back: Stores value"}
+{"type": "flashcard", "text": "Front: Integer | Back: Number type"}
+{"type": "summary", "text": "Variables store data and make programs flexible."}
+{"type": "summary", "text": "Variables are basic building blocks in programming."}
