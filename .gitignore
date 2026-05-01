@@ -9,3 +9,6 @@ __pycache__/
 models/
 training_data/
 outputs/
+
+*.db
+Updated_DB/

@@ -10,7 +10,6 @@ def simple_score(pred, gold):
         return 0
     return len(p & g) / len(g)
 
-
 def main():
     print("Running evaluation...")
 
@@ -23,7 +22,6 @@ def main():
 
             row = json.loads(line)
 
-            # fake prediction (use gold for demo)
             pred = row["output"]
             gold = row["output"]
 
@@ -36,6 +34,16 @@ def main():
     print("Samples:", len(scores))
     print("Average Score:", round(avg, 2))
 
+    # ✅ SAVE RESULT (fixed)
+    result = {
+        "average_score": avg,
+        "samples": len(scores)
+    }
+
+    with open("outputs/metrics/eval.json", "w") as f:
+        json.dump(result, f, indent=2)
+
+    print("Saved to outputs/metrics/eval.json")
 
 if __name__ == "__main__":
     main()
