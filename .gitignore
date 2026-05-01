@@ -1,3 +1,11 @@
+# ignore database files
+*.db
+
+# python cache
 __pycache__/
 *.pyc
-*.db
+
+# large folders
+models/
+training_data/
+outputs/
