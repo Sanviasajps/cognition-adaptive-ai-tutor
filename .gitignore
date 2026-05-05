@@ -6,6 +6,5 @@ Updated_DB/
 __pycache__/
 *.pyc
 
-# large folders
-models/
+# large folders (do NOT push dataset)
 training_data/

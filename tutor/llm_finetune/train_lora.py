@@ -40,15 +40,22 @@ def format_data(example):
 
 
 def tokenize(example, tokenizer):
-    return tokenizer(example["text"], truncation=True, max_length=256)
+    return tokenizer(
+        example["text"],
+        truncation=True,
+        max_length=256,
+        padding="max_length"
+    )
 
 
 def main():
-    print("Loading dataset (FAST MODE)...")
+    print("📦 Loading dataset (FAST MODE)...")
 
-    # 🔥 Reduced dataset for fast training
     train_data = load_jsonl(DATA_DIR / "tutor_train.jsonl")[:2000]
     val_data = load_jsonl(DATA_DIR / "tutor_val.jsonl")[:200]
+
+    print(f"Train samples: {len(train_data)}")
+    print(f"Val samples: {len(val_data)}")
 
     dataset = {
         "train": Dataset.from_list(train_data),
@@ -58,16 +65,16 @@ def main():
     dataset["train"] = dataset["train"].map(format_data)
     dataset["validation"] = dataset["validation"].map(format_data)
 
-    print("Loading tokenizer...")
+    print("🔤 Loading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    print("Loading model...")
+    print("🧠 Loading model...")
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
 
-    print("Applying LoRA...")
+    print("⚙️ Applying LoRA...")
     lora_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM,
         r=8,
@@ -79,7 +86,7 @@ def main():
     model = get_peft_model(model, lora_config)
     model.print_trainable_parameters()
 
-    print("Tokenizing...")
+    print("🔄 Tokenizing dataset...")
     tokenized = {
         "train": dataset["train"].map(lambda x: tokenize(x, tokenizer)),
         "validation": dataset["validation"].map(lambda x: tokenize(x, tokenizer)),
@@ -93,13 +100,16 @@ def main():
         output_dir=str(OUTPUT_DIR),
         per_device_train_batch_size=2,
         per_device_eval_batch_size=2,
-        num_train_epochs=1,  # 🔥 fast
+        num_train_epochs=1,  # fast training
         logging_steps=10,
+        evaluation_strategy="steps",
         eval_steps=50,
         save_steps=50,
+        save_total_limit=1,
         learning_rate=2e-4,
         fp16=torch.cuda.is_available(),
         report_to="none",
+        logging_dir=str(OUTPUT_DIR / "logs"),
     )
 
     trainer = Trainer(
@@ -110,14 +120,18 @@ def main():
         data_collator=data_collator,
     )
 
-    print("Starting FAST training...")
+    print("🚀 Starting training...")
     trainer.train()
 
-    print("Saving model...")
+    print("📊 Running final evaluation...")
+    eval_results = trainer.evaluate()
+    print("Eval Results:", eval_results)
+
+    print("💾 Saving model...")
     model.save_pretrained(OUTPUT_DIR)
     tokenizer.save_pretrained(OUTPUT_DIR)
 
-    print("Training complete! 🚀")
+    print("✅ Training complete!")
 
 
 if __name__ == "__main__":
