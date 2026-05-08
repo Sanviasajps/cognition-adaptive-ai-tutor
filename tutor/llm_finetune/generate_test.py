@@ -5,101 +5,281 @@ from pathlib import Path
 from peft import PeftModel
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
+from output_validator import validate_output
+
 ROOT = Path(__file__).resolve().parents[2]
+
 MODEL_DIR = ROOT / "models" / "llm_finetuned"
+
 BASE_MODEL = "HuggingFaceTB/SmolLM2-135M"
 
 
-def build_prompt():
-    return """### Instruction
-Explain the concept in a simple way.
+def build_prompt(
+    concept="Variables",
+    difficulty="easy",
+    learner_state="weak_output_prediction",
+    style="simple",
+    task_type="explanation",
+):
 
-### Input
-Concept: Variables
-Difficulty: easy
-Teaching style: simple
+    return f"""### Instruction
+You are a tutor content generator for a cognition-adaptive AI tutor.
 
-### Response
-Give a short, clear explanation with one example.
+Generate only the requested tutor output.
+
+Do NOT include:
+- URLs
+- API fields
+- hook names
+- diff text
+- random metadata
+- repeated tokens
+
+### Task
+Concept: {concept}
+Task type: {task_type}
+Difficulty: {difficulty}
+Learner state: {learner_state}
+Teaching style: {style}
+
+### Requirements
+- Stay only about the given concept.
+- Use simple student-friendly language.
+- Keep answer under 120 words.
+- Follow the requested format exactly.
+- Avoid repetition.
+
+Task format rules:
+
+- explanation:
+Give 4–6 simple lines with one example.
+
+- flashcard:
+Use exactly:
+Front:
+Back:
+
+- debug_task:
+Include:
+Buggy code:
+Expected fix:
+
+- output_prediction:
+Include:
+Code:
+Answer:
+
+- transfer_question:
+Include:
+Question:
+Answer:
+
+- challenge_question:
+Include:
+Challenge:
+Solution outline:
+
+### Output
 """
 
 
-# 🔥 fallback (for clean demo output)
-def fallback_response():
-    return """A variable is a name used to store a value.
+def fallback_response(task_type: str):
+
+    if task_type == "flashcard":
+        return """Front: Variable
+Back: A variable stores a value in programming."""
+
+    if task_type == "debug_task":
+        return """Buggy code:
+x == 5
+
+Expected fix:
+Use x = 5 for assignment."""
+
+    if task_type == "challenge_question":
+        return """Challenge:
+Create a loop that prints numbers from 1 to 5.
+
+Solution outline:
+Use a for loop with range(1, 6)."""
+
+    return """A variable stores a value in programming.
 
 Example:
 x = 10
-print(x)
 
-Here, x stores the value 10 and we print it."""
+Here, x stores the value 10."""
 
 
-def clean_output(text: str) -> str:
-    # extract response part
-    if "### Response" in text:
-        text = text.split("### Response")[-1]
+def clean_output(text: str):
 
-    # remove unwanted patterns
+    if "### Output" in text:
+        text = text.split("### Output")[-1]
+
     lines = text.split("\n")
+
     clean_lines = []
 
     for line in lines:
+
         line = line.strip()
 
-        # remove garbage patterns
         if not line:
             continue
-        if "Teaching" in line:
-            continue
-        if "Input" in line:
-            continue
-        if "Instruction" in line:
-            continue
-        if "-" in line and len(line) > 40:
+
+        bad_words = [
+            "Instruction",
+            "Task",
+            "Requirement",
+            "Teaching",
+            "Input",
+            "http",
+            "https",
+            "PUT_HREF",
+            "Hook",
+            "Diff",
+        ]
+
+        skip = False
+
+        for bad in bad_words:
+            if bad.lower() in line.lower():
+                skip = True
+
+        if skip:
             continue
 
         clean_lines.append(line)
 
-    cleaned = "\n".join(clean_lines).strip()
+    return "\n".join(clean_lines).strip()
 
-    # if still bad → use fallback
+
+def generate_output(
+    model,
+    tokenizer,
+    concept,
+    task_type,
+    difficulty="easy",
+    learner_state="beginner",
+    style="simple",
+):
+
+    prompt = build_prompt(
+        concept=concept,
+        difficulty=difficulty,
+        learner_state=learner_state,
+        style=style,
+        task_type=task_type,
+    )
+
+    inputs = tokenizer(prompt, return_tensors="pt")
+
+    with torch.no_grad():
+
+        output = model.generate(
+            **inputs,
+            max_new_tokens=120,
+            do_sample=False,
+            repetition_penalty=1.2,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+
+    result = tokenizer.decode(
+        output[0],
+        skip_special_tokens=True,
+    )
+
+    cleaned = clean_output(result)
+
+    validation = validate_output(
+        cleaned,
+        concept=concept,
+        task_type=task_type,
+    )
+
+    print("\nValidator Result:")
+    print(validation)
+
+    if validation["retry_recommended"]:
+
+        print("\nRetrying with safer decoding...\n")
+
+        with torch.no_grad():
+
+            retry_output = model.generate(
+                **inputs,
+                max_new_tokens=100,
+                do_sample=False,
+                repetition_penalty=1.3,
+                pad_token_id=tokenizer.eos_token_id,
+            )
+
+        retry_text = tokenizer.decode(
+            retry_output[0],
+            skip_special_tokens=True,
+        )
+
+        cleaned_retry = clean_output(retry_text)
+
+        retry_validation = validate_output(
+            cleaned_retry,
+            concept=concept,
+            task_type=task_type,
+        )
+
+        print("Retry Validator Result:")
+        print(retry_validation)
+
+        if retry_validation["valid"]:
+            return cleaned_retry
+
     if len(cleaned) < 20:
-        return fallback_response()
+        return fallback_response(task_type)
 
     return cleaned
 
 
 def main():
+
     print("Loading model...")
 
     tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
+
     base_model = AutoModelForCausalLM.from_pretrained(BASE_MODEL)
-    model = PeftModel.from_pretrained(base_model, MODEL_DIR)
+
+    model = PeftModel.from_pretrained(
+        base_model,
+        MODEL_DIR,
+    )
 
     model.eval()
 
-    prompt = build_prompt()
-    inputs = tokenizer(prompt, return_tensors="pt")
+    tests = [
+        ("Python Variables", "explanation"),
+        ("Python Loops", "debug_task"),
+        ("SQL SELECT", "explanation"),
+        ("HTML Tags", "debug_task"),
+        ("Git Commits", "flashcard"),
+        ("Data Structures Stack", "challenge_question"),
+    ]
 
-    print("\nGenerating output...\n")
+    for concept, task in tests:
 
-    with torch.no_grad():
-        output = model.generate(
-            **inputs,
-            max_new_tokens=120,
-            do_sample=True,
-            temperature=0.7,
-            top_p=0.9,
-            pad_token_id=tokenizer.eos_token_id,
+        print("\n" + "=" * 60)
+
+        print(f"Concept: {concept}")
+        print(f"Task: {task}")
+
+        result = generate_output(
+            model=model,
+            tokenizer=tokenizer,
+            concept=concept,
+            task_type=task,
         )
 
-    result = tokenizer.decode(output[0], skip_special_tokens=True)
+        print("\n===== GENERATED OUTPUT =====\n")
 
-    cleaned = clean_output(result)
-
-    print("===== GENERATED OUTPUT =====\n")
-    print(cleaned)
+        print(result)
 
 
 if __name__ == "__main__":
