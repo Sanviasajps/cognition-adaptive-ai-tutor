@@ -1,6 +1,9 @@
 {
   "total_samples": 5,
-  "valid_percent": 1.0,
+  "format_valid_percent": 0.8,
+  "task_success_rate": 0.8,
   "repetition_rate": 0.0,
-  "avg_length": 47.6
+  "artifact_rate": 0.2,
+  "concept_relevance": 0.6,
+  "avg_length": 11.2
 }

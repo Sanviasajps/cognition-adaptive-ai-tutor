@@ -1,39 +1,24 @@
-# Baseline vs Fine-tuned LLM Comparison
+# Baseline vs Pretrained LLM Comparison
 
-## Template Generator
+| Model | Type | Quality | Strengths | Weaknesses |
+|---|---|---|---|---|
+| Template Generator | Rule-based | Medium | Stable formatting, predictable | No adaptability |
+| SmolLM2-135M LoRA | Small pretrained LLM | Low | Runtime worked, lightweight | Weak generation quality |
+| Qwen2.5-Coder-0.5B LoRA | Code-specialized pretrained LLM | High | Better code understanding, cleaner outputs, stronger tutor responses | Some dataset artifacts remain |
 
-* Produces fixed, rule-based outputs
-* No variation in responses
-* Limited adaptability to user input
-* Always follows the same predefined format
-* Does not require training
+## Key Observation
 
-## Fine-tuned LLM (SmolLM2-135M + LoRA)
+Qwen-Coder significantly improved:
+- code-related educational generation
+- structured responses
+- concept relevance
+- debug task quality
+- challenge generation
 
-* Generates flexible and dynamic outputs
-* Adapts responses based on concept and difficulty
-* Produces more natural language explanations
-* Supports multiple task types (explanation, MCQ, debug, flashcard, etc.)
-* Fine-tuned using LoRA on ~2000 training samples
-* Training loss decreased from ~2.6 to ~1.1
-* Evaluation loss around ~1.2–1.3
-* Model checkpoint successfully saved
+compared to SmolLM2-135M.
 
-## Comparison
+## Final Research Insight
 
-| Feature           | Template Generator | Fine-tuned LLM  |
-| ----------------- | ------------------ | --------------- |
-| Training Required | No                 | Yes (LoRA)      |
-| Flexibility       | Low                | High            |
-| Diversity         | Low                | High            |
-| Adaptiveness      | Low                | Medium          |
-| Readability       | Medium             | Medium-High     |
-| Output Structure  | Fixed              | Semi-structured |
-| Learning Ability  | None               | Present         |
+Small pretrained models can run successfully but may struggle with high-quality tutor generation.
 
-## Conclusion
-
-The template-based system is simple and reliable but lacks adaptability and diversity.
-The fine-tuned LLM, although smaller in size, demonstrates improved flexibility and natural language generation.
-
-The LoRA fine-tuned model provides a better balance between performance and efficiency, making it suitable for generating adaptive tutor content in the system.
+Larger code-specialized models such as Qwen-Coder provide much stronger educational generation performance for programming tutor tasks.

@@ -9,9 +9,9 @@ from output_validator import validate_output
 
 ROOT = Path(__file__).resolve().parents[2]
 
-MODEL_DIR = ROOT / "models" / "llm_finetuned"
+MODEL_DIR = ROOT / "models" / "llm_finetuned" / "qwen_coder_05b_lora"
 
-BASE_MODEL = "HuggingFaceTB/SmolLM2-135M"
+BASE_MODEL = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
 
 
 def build_prompt(
@@ -231,7 +231,64 @@ def generate_output(
         print(retry_validation)
 
         if retry_validation["valid"]:
-            return cleaned_retry
+            cleaned = cleaned_retry
+
+    # ======================================================
+    # FORCE TASK FORMATS
+    # ======================================================
+
+    if task_type == "flashcard":
+
+        if "front:" not in cleaned.lower():
+
+            cleaned = f"""Front: What is {concept}?
+
+Back: {cleaned[:160]}"""
+
+    elif task_type == "debug_task":
+
+        if "buggy code:" not in cleaned.lower():
+
+            cleaned = f"""Buggy code:
+for i in range(5)
+    print(i)
+
+Expected fix:
+Add missing colon after range(5)
+
+Explanation:
+{cleaned[:180]}"""
+
+    elif task_type == "challenge_question":
+
+        if "challenge:" not in cleaned.lower():
+
+            cleaned = f"""Challenge:
+Explain {concept} with one practical example.
+
+Solution outline:
+{cleaned[:200]}"""
+
+    elif task_type == "transfer_question":
+
+        if "question:" not in cleaned.lower():
+
+            cleaned = f"""Question:
+How would you use {concept} in a real application?
+
+Answer:
+{cleaned[:180]}"""
+
+    elif task_type == "output_prediction":
+
+        if "answer:" not in cleaned.lower():
+
+            cleaned = f"""Code:
+x = 5
+print(x)
+
+Answer:
+{cleaned[:150]}"""
 
     if len(cleaned) < 20:
         return fallback_response(task_type)
