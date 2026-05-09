@@ -1,0 +1,6 @@
+{
+  "System A": "template_rule_baseline",
+  "System B": "cognitutor_lm_from_scratch",
+  "System C": "sanvia_pretrained_finetuned_llm",
+  "System D": "rag_grounded_service"
+}

@@ -1,0 +1,5 @@
+sample_id,concept,task_type,system_label,generated_output,concept_correctness_1_to_5,concept_relevance_1_to_5,teaching_clarity_1_to_5,task_fit_1_to_5,usefulness_1_to_5,hallucination_safety_1_to_5,format_quality_1_to_5,overall_score_1_to_5,comments
+S1,Variables,explanation,System A,Variables store values in programming.,,,,,,,,,
+S2,Loops,debug_task,System B,Buggy code: for i in range(5),,,,,,,,,
+S3,SQL SELECT,flashcard,System C,Front: SELECT Back: Retrieves data.,,,,,,,,,
+S4,Git,challenge_question,System D,Challenge: Explain git commit.,,,,,,,,,

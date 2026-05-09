@@ -1,75 +1,27 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-OUTPUT_FILE = (
-    ROOT
-    / "outputs"
-    / "metrics"
-    / "llm_evaluation.json"
+SAMPLE_PATH = os.getenv(
+    "TUTOR_SAMPLE_PATH",
+    str(ROOT / "outputs" / "samples" / "smollm2_135m_samples.jsonl")
 )
 
-OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+METRICS_PATH = os.getenv(
+    "TUTOR_METRICS_PATH",
+    str(ROOT / "outputs" / "metrics" / "smollm2_135m_metrics.json")
+)
 
+SAMPLE_PATH = Path(SAMPLE_PATH)
+METRICS_PATH = Path(METRICS_PATH)
 
-# =====================================================
-# SAMPLE GENERATED OUTPUTS
-# =====================================================
+METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-samples = [
-    {
-        "task": "flashcard",
-        "concept": "Git Commits",
-        "output": """Front: What is Git Commit?
-
-Back: Git commit saves changes in a repository."""
-    },
-
-    {
-        "task": "debug_task",
-        "concept": "Python Loops",
-        "output": """Buggy code:
-for i in range(5)
-    print(i)
-
-Expected fix:
-Add colon after range(5)."""
-    },
-
-    {
-        "task": "challenge_question",
-        "concept": "Stack",
-        "output": """Challenge:
-Explain stack with a real-world example.
-
-Solution outline:
-A stack works like a pile of books."""
-    },
-
-    {
-        "task": "explanation",
-        "concept": "Variables",
-        "output": """Variables store values in programming.
-
-Example:
-x = 10"""
-    },
-
-    {
-        "task": "flashcard",
-        "concept": "HTML",
-        "output": """3-question — coverage metadata"""
-    },
-]
-
-
-# =====================================================
-# BAD ARTIFACTS
-# =====================================================
 
 BAD_PATTERNS = [
     "3-question",
@@ -78,12 +30,12 @@ BAD_PATTERNS = [
     "PUT_HREF",
     "Hook",
     "Diff",
+    "Task_instance",
+    "base_url",
+    "http://",
+    "https://",
 ]
 
-
-# =====================================================
-# REPETITION CHECK
-# =====================================================
 
 def has_repetition(text: str):
 
@@ -102,93 +54,150 @@ def has_repetition(text: str):
     return False
 
 
-# =====================================================
-# TASK FORMAT VALIDATION
-# =====================================================
+def validate_flashcard(output):
 
-def check_task_success(task, output):
-
-    lower = output.lower()
-
-    if task == "flashcard":
-        return (
-            "front:" in lower
-            and "back:" in lower
-        )
-
-    elif task == "debug_task":
-        return (
-            "buggy code:" in lower
-            and "expected fix:" in lower
-        )
-
-    elif task == "challenge_question":
-        return (
-            "challenge:" in lower
-            and "solution outline:" in lower
-        )
-
-    return True
+    return (
+        isinstance(output, dict)
+        and "front" in output
+        and "back" in output
+    )
 
 
-# =====================================================
-# MAIN EVALUATION
-# =====================================================
+def validate_mcq(output):
+
+    return (
+        isinstance(output, dict)
+        and "question" in output
+        and "options" in output
+        and len(output["options"]) == 4
+        and "answer" in output
+        and "explanation" in output
+    )
+
+
+def validate_debug(output):
+
+    return (
+        isinstance(output, dict)
+        and "buggy_code" in output
+        and "expected_fix" in output
+        and "hint" in output
+    )
+
+
+def validate_mindmap(output):
+
+    return (
+        isinstance(output, dict)
+        and "center" in output
+        and "branches" in output
+    )
+
 
 def main():
 
+    if not SAMPLE_PATH.exists():
+
+        print(f"Sample file missing: {SAMPLE_PATH}")
+
+        return
+
+    samples = []
+
+    with open(SAMPLE_PATH, "r", encoding="utf-8") as f:
+
+        for line in f:
+
+            if line.strip():
+                samples.append(json.loads(line))
+
     total = len(samples)
 
-    valid_count = 0
     repetition_count = 0
-    artifact_count = 0
+    bad_pattern_count = 0
+    invalid_output_count = 0
     task_success_count = 0
     concept_match_count = 0
+
+    flashcard_valid = 0
+    mcq_valid = 0
+    debug_valid = 0
+    mindmap_valid = 0
 
     lengths = []
 
     for sample in samples:
 
-        task = sample["task"]
-        concept = sample["concept"]
-        output = sample["output"]
+        task = sample.get("task_type", "")
+        concept = sample.get("concept", "")
 
-        lower = output.lower()
+        output = sample.get("output", "")
 
-        lengths.append(len(output.split()))
+        if isinstance(output, dict):
+            output_text = json.dumps(output)
+        else:
+            output_text = str(output)
 
-        # repetition
-        if has_repetition(output):
+        lower = output_text.lower()
+
+        lengths.append(len(output_text.split()))
+
+        if has_repetition(output_text):
             repetition_count += 1
 
-        # artifact detection
-        found_artifact = False
+        found_bad = False
 
         for bad in BAD_PATTERNS:
 
             if bad.lower() in lower:
-                artifact_count += 1
-                found_artifact = True
+                bad_pattern_count += 1
+                found_bad = True
                 break
 
-        # task format
-        if check_task_success(task, output):
-            task_success_count += 1
-
-        # concept relevance
         if concept.lower().split()[0] in lower:
             concept_match_count += 1
 
-        # overall validity
-        if not found_artifact:
-            valid_count += 1
+        valid_task = True
+
+        if task == "flashcard":
+
+            if validate_flashcard(output):
+                flashcard_valid += 1
+            else:
+                valid_task = False
+
+        elif task == "mcq":
+
+            if validate_mcq(output):
+                mcq_valid += 1
+            else:
+                valid_task = False
+
+        elif task == "debug_task":
+
+            if validate_debug(output):
+                debug_valid += 1
+            else:
+                valid_task = False
+
+        elif task == "mindmap":
+
+            if validate_mindmap(output):
+                mindmap_valid += 1
+            else:
+                valid_task = False
+
+        if valid_task:
+            task_success_count += 1
+        else:
+            invalid_output_count += 1
 
     metrics = {
 
         "total_samples": total,
 
-        "format_valid_percent":
-            round(valid_count / total, 2),
+        "format_validity":
+            round((total - invalid_output_count) / total, 2),
 
         "task_success_rate":
             round(task_success_count / total, 2),
@@ -196,24 +205,46 @@ def main():
         "repetition_rate":
             round(repetition_count / total, 2),
 
-        "artifact_rate":
-            round(artifact_count / total, 2),
-
-        "concept_relevance":
-            round(concept_match_count / total, 2),
-
         "avg_length":
             round(sum(lengths) / total, 2),
+
+        "invalid_output_count":
+            invalid_output_count,
+
+        "bad_pattern_count":
+            bad_pattern_count,
+
+        "json_validity":
+            round((total - invalid_output_count) / total, 2),
+
+        "mcq_validity":
+            mcq_valid,
+
+        "debug_validity":
+            debug_valid,
+
+        "flashcard_validity":
+            flashcard_valid,
+
+        "mindmap_validity":
+            mindmap_valid,
+
+        "concept_relevance_proxy":
+            round(concept_match_count / total, 2),
+
+        "manual_quality_placeholder":
+            "human review required"
     }
 
     print("\nEvaluation Result:\n")
 
     print(json.dumps(metrics, indent=2))
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    with open(METRICS_PATH, "w", encoding="utf-8") as f:
+
         json.dump(metrics, f, indent=2)
 
-    print(f"\nSaved to: {OUTPUT_FILE}")
+    print(f"\nSaved to: {METRICS_PATH}")
 
 
 if __name__ == "__main__":

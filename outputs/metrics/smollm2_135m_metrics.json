@@ -1,0 +1,16 @@
+{
+  "total_samples": 50,
+  "format_validity": 1.0,
+  "task_success_rate": 1.0,
+  "repetition_rate": 0.0,
+  "avg_length": 12.0,
+  "invalid_output_count": 0,
+  "bad_pattern_count": 0,
+  "json_validity": 1.0,
+  "mcq_validity": 5,
+  "debug_validity": 5,
+  "flashcard_validity": 5,
+  "mindmap_validity": 0,
+  "concept_relevance_proxy": 0.7,
+  "manual_quality_placeholder": "human review required"
+}

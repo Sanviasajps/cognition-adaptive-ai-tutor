@@ -1,0 +1,50 @@
+{"task_type": "explanation", "concept": "Python Variables", "output": "Python Variables is an important programming concept used in software development."}
+{"task_type": "explanation", "concept": "Python Loops", "output": "Python Loops is an important programming concept used in software development."}
+{"task_type": "explanation", "concept": "SQL SELECT", "output": "SQL SELECT is an important programming concept used in software development."}
+{"task_type": "explanation", "concept": "HTML Tags", "output": "HTML Tags is an important programming concept used in software development."}
+{"task_type": "explanation", "concept": "Git Commits", "output": "Git Commits is an important programming concept used in software development."}
+{"task_type": "flashcard", "concept": "Python Variables", "output": {"front": "What is Python Variables?", "back": "Python Variables is a programming concept."}}
+{"task_type": "flashcard", "concept": "Python Loops", "output": {"front": "What is Python Loops?", "back": "Python Loops is a programming concept."}}
+{"task_type": "flashcard", "concept": "SQL SELECT", "output": {"front": "What is SQL SELECT?", "back": "SQL SELECT is a programming concept."}}
+{"task_type": "flashcard", "concept": "HTML Tags", "output": {"front": "What is HTML Tags?", "back": "HTML Tags is a programming concept."}}
+{"task_type": "flashcard", "concept": "Git Commits", "output": {"front": "What is Git Commits?", "back": "Git Commits is a programming concept."}}
+{"task_type": "mcq", "concept": "Python Variables", "output": {"question": "What is Python Variables mainly used for?", "options": ["Programming", "Cooking", "Drawing", "Gaming"], "answer": "Programming", "explanation": "Python Variables is related to programming."}}
+{"task_type": "mcq", "concept": "Python Loops", "output": {"question": "What is Python Loops mainly used for?", "options": ["Programming", "Cooking", "Drawing", "Gaming"], "answer": "Programming", "explanation": "Python Loops is related to programming."}}
+{"task_type": "mcq", "concept": "SQL SELECT", "output": {"question": "What is SQL SELECT mainly used for?", "options": ["Programming", "Cooking", "Drawing", "Gaming"], "answer": "Programming", "explanation": "SQL SELECT is related to programming."}}
+{"task_type": "mcq", "concept": "HTML Tags", "output": {"question": "What is HTML Tags mainly used for?", "options": ["Programming", "Cooking", "Drawing", "Gaming"], "answer": "Programming", "explanation": "HTML Tags is related to programming."}}
+{"task_type": "mcq", "concept": "Git Commits", "output": {"question": "What is Git Commits mainly used for?", "options": ["Programming", "Cooking", "Drawing", "Gaming"], "answer": "Programming", "explanation": "Git Commits is related to programming."}}
+{"task_type": "debug_task", "concept": "Python Variables", "output": {"buggy_code": "for i in range(5)\n    print(i)", "expected_fix": "for i in range(5):\n    print(i)", "hint": "Missing colon after range(5)"}}
+{"task_type": "debug_task", "concept": "Python Loops", "output": {"buggy_code": "for i in range(5)\n    print(i)", "expected_fix": "for i in range(5):\n    print(i)", "hint": "Missing colon after range(5)"}}
+{"task_type": "debug_task", "concept": "SQL SELECT", "output": {"buggy_code": "for i in range(5)\n    print(i)", "expected_fix": "for i in range(5):\n    print(i)", "hint": "Missing colon after range(5)"}}
+{"task_type": "debug_task", "concept": "HTML Tags", "output": {"buggy_code": "for i in range(5)\n    print(i)", "expected_fix": "for i in range(5):\n    print(i)", "hint": "Missing colon after range(5)"}}
+{"task_type": "debug_task", "concept": "Git Commits", "output": {"buggy_code": "for i in range(5)\n    print(i)", "expected_fix": "for i in range(5):\n    print(i)", "hint": "Missing colon after range(5)"}}
+{"task_type": "output_prediction", "concept": "Python Variables", "output": {"code": "x = 5\nprint(x)", "answer": "5"}}
+{"task_type": "output_prediction", "concept": "Python Loops", "output": {"code": "x = 5\nprint(x)", "answer": "5"}}
+{"task_type": "output_prediction", "concept": "SQL SELECT", "output": {"code": "x = 5\nprint(x)", "answer": "5"}}
+{"task_type": "output_prediction", "concept": "HTML Tags", "output": {"code": "x = 5\nprint(x)", "answer": "5"}}
+{"task_type": "output_prediction", "concept": "Git Commits", "output": {"code": "x = 5\nprint(x)", "answer": "5"}}
+{"task_type": "transfer_question", "concept": "Python Variables", "output": {"question": "How is Python Variables used in real projects?", "answer": "Python Variables is commonly used in software systems."}}
+{"task_type": "transfer_question", "concept": "Python Loops", "output": {"question": "How is Python Loops used in real projects?", "answer": "Python Loops is commonly used in software systems."}}
+{"task_type": "transfer_question", "concept": "SQL SELECT", "output": {"question": "How is SQL SELECT used in real projects?", "answer": "SQL SELECT is commonly used in software systems."}}
+{"task_type": "transfer_question", "concept": "HTML Tags", "output": {"question": "How is HTML Tags used in real projects?", "answer": "HTML Tags is commonly used in software systems."}}
+{"task_type": "transfer_question", "concept": "Git Commits", "output": {"question": "How is Git Commits used in real projects?", "answer": "Git Commits is commonly used in software systems."}}
+{"task_type": "challenge_question", "concept": "Python Variables", "output": {"challenge": "Explain Python Variables with a real-world example.", "solution_outline": "Use a simple practical scenario."}}
+{"task_type": "challenge_question", "concept": "Python Loops", "output": {"challenge": "Explain Python Loops with a real-world example.", "solution_outline": "Use a simple practical scenario."}}
+{"task_type": "challenge_question", "concept": "SQL SELECT", "output": {"challenge": "Explain SQL SELECT with a real-world example.", "solution_outline": "Use a simple practical scenario."}}
+{"task_type": "challenge_question", "concept": "HTML Tags", "output": {"challenge": "Explain HTML Tags with a real-world example.", "solution_outline": "Use a simple practical scenario."}}
+{"task_type": "challenge_question", "concept": "Git Commits", "output": {"challenge": "Explain Git Commits with a real-world example.", "solution_outline": "Use a simple practical scenario."}}
+{"task_type": "hint", "concept": "Python Variables", "output": "Think carefully about how Python Variables works."}
+{"task_type": "hint", "concept": "Python Loops", "output": "Think carefully about how Python Loops works."}
+{"task_type": "hint", "concept": "SQL SELECT", "output": "Think carefully about how SQL SELECT works."}
+{"task_type": "hint", "concept": "HTML Tags", "output": "Think carefully about how HTML Tags works."}
+{"task_type": "hint", "concept": "Git Commits", "output": "Think carefully about how Git Commits works."}
+{"task_type": "feedback", "concept": "Python Variables", "output": "Good attempt. Review the syntax carefully."}
+{"task_type": "feedback", "concept": "Python Loops", "output": "Good attempt. Review the syntax carefully."}
+{"task_type": "feedback", "concept": "SQL SELECT", "output": "Good attempt. Review the syntax carefully."}
+{"task_type": "feedback", "concept": "HTML Tags", "output": "Good attempt. Review the syntax carefully."}
+{"task_type": "feedback", "concept": "Git Commits", "output": "Good attempt. Review the syntax carefully."}
+{"task_type": "revision_note", "concept": "Python Variables", "output": "Remember the key rules of Python Variables."}
+{"task_type": "revision_note", "concept": "Python Loops", "output": "Remember the key rules of Python Loops."}
+{"task_type": "revision_note", "concept": "SQL SELECT", "output": "Remember the key rules of SQL SELECT."}
+{"task_type": "revision_note", "concept": "HTML Tags", "output": "Remember the key rules of HTML Tags."}
+{"task_type": "revision_note", "concept": "Git Commits", "output": "Remember the key rules of Git Commits."}
