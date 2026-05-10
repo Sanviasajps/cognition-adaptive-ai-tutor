@@ -12,12 +12,15 @@ from transformers import (
 
 ROOT = Path(__file__).resolve().parents[2]
 
-DEFAULT_BASE_MODEL = "HuggingFaceTB/SmolLM2-135M"
+DEFAULT_BASE_MODEL = (
+    "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+)
 
 DEFAULT_MODEL_DIR = (
     ROOT
     / "models"
     / "llm_finetuned"
+    / "qwen_coder_05b_lora"
 )
 
 
@@ -46,25 +49,29 @@ def load_model():
     print(f"Model directory: {model_dir}")
     print(f"Offline mode: {offline_mode}")
 
-    # --------------------------------------------------
+    # ==================================================
     # CHECK LOCAL MODEL DIRECTORY
-    # --------------------------------------------------
+    # ==================================================
 
     if not model_dir.exists():
 
         return {
             "status": "warning",
+
             "generation_status":
                 "unavailable_local_model_missing",
+
             "model": None,
+
             "tokenizer": None,
+
             "error_message":
                 f"Model directory not found: {model_dir}"
         }
 
-    # --------------------------------------------------
+    # ==================================================
     # OFFLINE MODE
-    # --------------------------------------------------
+    # ==================================================
 
     local_files_only = False
 
@@ -73,6 +80,10 @@ def load_model():
         local_files_only = True
 
         print("\nOffline mode enabled.")
+
+    # ==================================================
+    # LOAD TOKENIZER
+    # ==================================================
 
     try:
 
@@ -88,14 +99,23 @@ def load_model():
     except Exception as e:
 
         return {
+
             "status": "warning",
+
             "generation_status":
                 "unavailable_remote_fetch_failed",
+
             "model": None,
+
             "tokenizer": None,
+
             "error_message":
                 f"Tokenizer load failed: {str(e)}"
         }
+
+    # ==================================================
+    # LOAD BASE MODEL
+    # ==================================================
 
     try:
 
@@ -111,14 +131,23 @@ def load_model():
     except Exception as e:
 
         return {
+
             "status": "warning",
+
             "generation_status":
                 "unavailable_remote_fetch_failed",
+
             "model": None,
+
             "tokenizer": tokenizer,
+
             "error_message":
                 f"Base model load failed: {str(e)}"
         }
+
+    # ==================================================
+    # APPLY LORA ADAPTER
+    # ==================================================
 
     try:
 
@@ -134,11 +163,16 @@ def load_model():
     except Exception as e:
 
         return {
+
             "status": "warning",
+
             "generation_status":
                 "adapter_load_failed",
+
             "model": None,
+
             "tokenizer": tokenizer,
+
             "error_message":
                 f"Adapter load failed: {str(e)}"
         }
@@ -146,9 +180,26 @@ def load_model():
     model.eval()
 
     return {
+
         "status": "success",
+
         "generation_status": "ready",
+
         "model": model,
+
         "tokenizer": tokenizer,
+
         "error_message": None,
     }
+
+
+if __name__ == "__main__":
+
+    result = load_model()
+
+    print("\nLoad Result:\n")
+
+    print(result["generation_status"])
+
+    if result["error_message"]:
+        print(result["error_message"])

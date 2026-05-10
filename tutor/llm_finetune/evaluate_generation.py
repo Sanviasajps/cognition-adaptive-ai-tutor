@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,7 +36,7 @@ BAD_PATTERNS = [
 ]
 
 
-def has_repetition(text: str):
+def has_repetition(text: str) -> bool:
 
     words = text.lower().split()
 
@@ -46,7 +45,7 @@ def has_repetition(text: str):
 
     for i in range(len(words) - 2):
 
-        phrase = " ".join(words[i:i+3])
+        phrase = " ".join(words[i:i + 3])
 
         if text.lower().count(phrase) >= 3:
             return True
@@ -69,6 +68,7 @@ def validate_mcq(output):
         isinstance(output, dict)
         and "question" in output
         and "options" in output
+        and isinstance(output["options"], list)
         and len(output["options"]) == 4
         and "answer" in output
         and "explanation" in output
@@ -91,6 +91,7 @@ def validate_mindmap(output):
         isinstance(output, dict)
         and "center" in output
         and "branches" in output
+        and isinstance(output["branches"], list)
     )
 
 
@@ -99,7 +100,6 @@ def main():
     if not SAMPLE_PATH.exists():
 
         print(f"Sample file missing: {SAMPLE_PATH}")
-
         return
 
     samples = []
@@ -108,10 +108,23 @@ def main():
 
         for line in f:
 
-            if line.strip():
+            line = line.strip()
+
+            if not line:
+                continue
+
+            try:
                 samples.append(json.loads(line))
 
+            except Exception:
+                continue
+
     total = len(samples)
+
+    if total == 0:
+
+        print("No samples found.")
+        return
 
     repetition_count = 0
     bad_pattern_count = 0
@@ -128,8 +141,9 @@ def main():
 
     for sample in samples:
 
-        task = sample.get("task_type", "")
-        concept = sample.get("concept", "")
+        task = str(sample.get("task_type", "")).strip()
+
+        concept = str(sample.get("concept", "")).strip()
 
         output = sample.get("output", "")
 
@@ -142,21 +156,28 @@ def main():
 
         lengths.append(len(output_text.split()))
 
+        # repetition detection
         if has_repetition(output_text):
             repetition_count += 1
 
-        found_bad = False
-
+        # artifact detection
         for bad in BAD_PATTERNS:
 
             if bad.lower() in lower:
                 bad_pattern_count += 1
-                found_bad = True
                 break
 
-        if concept.lower().split()[0] in lower:
-            concept_match_count += 1
+        # concept relevance
+        if concept:
 
+            concept_tokens = concept.lower().split()
+
+            if concept_tokens:
+
+                if concept_tokens[0] in lower:
+                    concept_match_count += 1
+
+        # structured validation
         valid_task = True
 
         if task == "flashcard":

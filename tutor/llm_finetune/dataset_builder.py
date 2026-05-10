@@ -27,9 +27,9 @@ STYLES = [
     "analogy",
     "step_by_step",
     "question_based",
-    "misconception",
-    "challenge",
-    "revision",
+    "misconception_correction",
+    "challenge_based",
+    "revision_summary",
 ]
 
 LEARNER_STATES = [

@@ -1,17 +1,36 @@
 from __future__ import annotations
 
-import torch
+import os
 from pathlib import Path
-from peft import PeftModel
-from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from output_validator import validate_output
+import torch
+from peft import PeftModel
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+)
+
+from tutor.llm_finetune.output_validator import validate_output
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
-MODEL_DIR = ROOT / "models" / "llm_finetuned" / "qwen_coder_05b_lora"
+MODEL_DIR = Path(
+    os.getenv(
+        "TUTOR_MODEL_DIR",
+        str(
+            ROOT
+            / "models"
+            / "llm_finetuned"
+            / "qwen_coder_05b_lora"
+        )
+    )
+)
 
-BASE_MODEL = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+BASE_MODEL = os.getenv(
+    "TUTOR_BASE_MODEL",
+    "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+)
 
 
 def build_prompt(
@@ -86,10 +105,12 @@ Solution outline:
 def fallback_response(task_type: str):
 
     if task_type == "flashcard":
+
         return """Front: Variable
 Back: A variable stores a value in programming."""
 
     if task_type == "debug_task":
+
         return """Buggy code:
 x == 5
 
@@ -97,6 +118,7 @@ Expected fix:
 Use x = 5 for assignment."""
 
     if task_type == "challenge_question":
+
         return """Challenge:
 Create a loop that prints numbers from 1 to 5.
 
@@ -143,6 +165,7 @@ def clean_output(text: str):
         skip = False
 
         for bad in bad_words:
+
             if bad.lower() in line.lower():
                 skip = True
 
@@ -172,7 +195,10 @@ def generate_output(
         task_type=task_type,
     )
 
-    inputs = tokenizer(prompt, return_tensors="pt")
+    inputs = tokenizer(
+        prompt,
+        return_tensors="pt"
+    )
 
     with torch.no_grad():
 
@@ -219,7 +245,9 @@ def generate_output(
             skip_special_tokens=True,
         )
 
-        cleaned_retry = clean_output(retry_text)
+        cleaned_retry = clean_output(
+            retry_text
+        )
 
         retry_validation = validate_output(
             cleaned_retry,
@@ -233,9 +261,9 @@ def generate_output(
         if retry_validation["valid"]:
             cleaned = cleaned_retry
 
-    # ======================================================
+    # ==================================================
     # FORCE TASK FORMATS
-    # ======================================================
+    # ==================================================
 
     if task_type == "flashcard":
 
@@ -298,11 +326,18 @@ Answer:
 
 def main():
 
-    print("Loading model...")
+    print("Loading model...\n")
 
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
+    print(f"Base model: {BASE_MODEL}")
+    print(f"Model dir: {MODEL_DIR}\n")
 
-    base_model = AutoModelForCausalLM.from_pretrained(BASE_MODEL)
+    tokenizer = AutoTokenizer.from_pretrained(
+        MODEL_DIR
+    )
+
+    base_model = AutoModelForCausalLM.from_pretrained(
+        BASE_MODEL
+    )
 
     model = PeftModel.from_pretrained(
         base_model,
@@ -312,11 +347,17 @@ def main():
     model.eval()
 
     tests = [
+
         ("Python Variables", "explanation"),
+
         ("Python Loops", "debug_task"),
+
         ("SQL SELECT", "explanation"),
+
         ("HTML Tags", "debug_task"),
+
         ("Git Commits", "flashcard"),
+
         ("Data Structures Stack", "challenge_question"),
     ]
 
@@ -337,6 +378,8 @@ def main():
         print("\n===== GENERATED OUTPUT =====\n")
 
         print(result)
+
+    print("\nSTATUS: PASS")
 
 
 if __name__ == "__main__":

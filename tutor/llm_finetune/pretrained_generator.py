@@ -1,76 +1,267 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from peft import PeftModel
+from __future__ import annotations
+
+import time
+
 import torch
 
-MODEL_NAME = "HuggingFaceTB/SmolLM2-135M"
-MODEL_PATH = "models/llm_finetuned"
+from tutor.llm_finetune.model_loader import (
+    load_model,
+)
 
-# load once
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-base_model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
-model = PeftModel.from_pretrained(base_model, MODEL_PATH)
-model.eval()
+from tutor.llm_finetune.output_validator import (
+    validate_output,
+)
 
 
-def generate_tutor_output(concept, difficulty, learner_state, style, task):
+LOADED = load_model()
 
-    task = task.lower()
+MODEL = LOADED.get("model")
 
-    prompt = f"""
-You are a tutor.
+TOKENIZER = LOADED.get("tokenizer")
 
-Give short answer.
+GENERATION_STATUS = LOADED.get(
+    "generation_status",
+    "unknown"
+)
 
-Concept: {concept}
-Task: {task}
 
-Answer:
+def build_prompt(
+    concept_name,
+    difficulty,
+    learner_state,
+    teaching_style,
+    task_type,
+):
+
+    return f"""### Instruction
+You are an adaptive AI tutor.
+
+Generate only the requested tutor content.
+
+### Tutor Context
+Concept: {concept_name}
+Difficulty: {difficulty}
+Learner state: {learner_state}
+Teaching style: {teaching_style}
+Task type: {task_type}
+
+### Rules
+- Keep answer concise.
+- Use student-friendly language.
+- Stay relevant to the concept.
+- Do not include metadata.
+- Do not include URLs or API text.
+
+### Output
 """
 
-    inputs = tokenizer(prompt, return_tensors="pt")
 
-    with torch.no_grad():
-        output = model.generate(
-            **inputs,
-            max_new_tokens=60,
-            do_sample=False
+def fallback_output(task_type, concept_name):
+
+    if task_type == "flashcard":
+
+        return f"""Front: What is {concept_name}?
+
+Back: {concept_name} is an important programming concept."""
+
+    elif task_type == "debug_task":
+
+        return """Buggy code:
+x == 5
+
+Expected fix:
+x = 5
+
+Hint:
+Use assignment operator."""
+
+    elif task_type == "mcq":
+
+        return """{
+  "question": "What is a variable?",
+  "options": [
+    "Storage",
+    "Loop",
+    "Function",
+    "Class"
+  ],
+  "answer": "Storage",
+  "explanation": "Variables store values."
+}"""
+
+    return (
+        f"{concept_name} is an important "
+        f"programming concept."
+    )
+
+
+def generate_tutor_output(
+    concept_resource,
+    difficulty,
+    learner_state,
+    teaching_style,
+    task_type,
+):
+
+    if MODEL is None or TOKENIZER is None:
+
+        return {
+
+            "status": "warning",
+
+            "generation_status":
+                GENERATION_STATUS,
+
+            "output": None,
+
+            "fallback_used": True,
+
+            "error_message":
+                LOADED.get("error_message"),
+        }
+
+    concept_name = str(
+        concept_resource.get(
+            "concept_name",
+            "Unknown Concept"
+        )
+    )
+
+    prompt = build_prompt(
+        concept_name=concept_name,
+        difficulty=difficulty,
+        learner_state=learner_state,
+        teaching_style=teaching_style,
+        task_type=task_type,
+    )
+
+    start = time.time()
+
+    try:
+
+        inputs = TOKENIZER(
+            prompt,
+            return_tensors="pt"
         )
 
-    result = tokenizer.decode(output[0], skip_special_tokens=True)
+        with torch.no_grad():
 
-    if "Answer:" in result:
-        result = result.split("Answer:")[-1]
+            output = MODEL.generate(
+                **inputs,
+                max_new_tokens=120,
+                do_sample=False,
+                repetition_penalty=1.2,
+                pad_token_id=TOKENIZER.eos_token_id,
+            )
 
-    result = result.strip()
+        result = TOKENIZER.decode(
+            output[0],
+            skip_special_tokens=True,
+        )
 
-    # 🔥 FINAL FORCE STRUCTURE
+        if "### Output" in result:
 
-    if task == "mcq":
-        return '{"question":"What is a variable?","options":["A storage","A loop","A function","A class"],"answer":"A storage"}'
+            result = result.split(
+                "### Output"
+            )[-1]
 
-    elif task == "debug":
-        return '{"buggy_code":"x == 5","expected_fix":"x = 5","hint":"Use assignment operator"}'
+        result = result.strip()
 
-    elif task == "flashcard":
-        return '{"front":"Variable","back":"Stores data value"}'
+        validation = validate_output(
+            result,
+            concept=concept_name,
+            task_type=task_type,
+        )
 
-    elif task == "explanation":
-        return "A variable is used to store a value in programming. For example, x = 10 stores the value 10."
+        if not validation["valid"]:
 
-    return result
+            result = fallback_output(
+                task_type,
+                concept_name
+            )
+
+        latency = round(
+            time.time() - start,
+            2
+        )
+
+        return {
+
+            "status": "success",
+
+            "generation_status":
+                "success",
+
+            "model_name":
+                str(MODEL.__class__.__name__),
+
+            "task_type":
+                task_type,
+
+            "concept_name":
+                concept_name,
+
+            "output":
+                result,
+
+            "validator":
+                validation,
+
+            "latency_seconds":
+                latency,
+
+            "fallback_used":
+                not validation["valid"],
+        }
+
+    except Exception as e:
+
+        return {
+
+            "status": "warning",
+
+            "generation_status":
+                "generation_failed",
+
+            "output": fallback_output(
+                task_type,
+                concept_name
+            ),
+
+            "fallback_used": True,
+
+            "error_message":
+                str(e),
+        }
 
 
-# test
 if __name__ == "__main__":
 
-    print("\n--- Explanation ---")
-    print(generate_tutor_output("Variables", "easy", "slow learner", "simple", "explanation"))
+    sample_concept = {
 
-    print("\n--- MCQ ---")
-    print(generate_tutor_output("Variables", "easy", "slow learner", "simple", "mcq"))
+        "concept_name": "Python Variables"
+    }
 
-    print("\n--- Debug ---")
-    print(generate_tutor_output("Variables", "easy", "slow learner", "simple", "debug"))
+    tasks = [
 
-    print("\n--- Flashcard ---")
-    print(generate_tutor_output("Variables", "easy", "slow learner", "simple", "flashcard"))
+        "explanation",
+        "flashcard",
+        "debug_task",
+        "mcq",
+    ]
+
+    for task in tasks:
+
+        print("\n" + "=" * 60)
+
+        print(f"Task: {task}")
+
+        result = generate_tutor_output(
+            concept_resource=sample_concept,
+            difficulty="easy",
+            learner_state="slow_learner",
+            teaching_style="simple",
+            task_type=task,
+        )
+
+        print(result)
