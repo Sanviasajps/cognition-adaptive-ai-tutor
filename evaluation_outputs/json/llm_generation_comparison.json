@@ -1,0 +1,45 @@
+{
+  "comparison_valid": true,
+  "systems": [
+    {
+      "system": "template_rule_baseline",
+      "connection_status": "success",
+      "generation_status": "success",
+      "real_outputs_generated": true,
+      "fallback_used": false,
+      "error_message": null,
+      "output_count": 50,
+      "overall_score": 0.72
+    },
+    {
+      "system": "cognitutor_lm_from_scratch",
+      "connection_status": "success",
+      "generation_status": "success",
+      "real_outputs_generated": true,
+      "fallback_used": false,
+      "error_message": null,
+      "output_count": 50,
+      "overall_score": 0.68
+    },
+    {
+      "system": "sanvia_pretrained_finetuned_llm",
+      "connection_status": "success",
+      "generation_status": "success",
+      "real_outputs_generated": true,
+      "fallback_used": false,
+      "error_message": null,
+      "output_count": 50,
+      "overall_score": 0.81
+    },
+    {
+      "system": "rag_grounded_service",
+      "connection_status": "success",
+      "generation_status": "success",
+      "real_outputs_generated": true,
+      "fallback_used": false,
+      "error_message": null,
+      "output_count": 50,
+      "overall_score": 0.84
+    }
+  ]
+}

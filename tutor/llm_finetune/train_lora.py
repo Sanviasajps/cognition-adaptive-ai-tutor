@@ -55,10 +55,6 @@ MAX_LENGTH = int(
     os.getenv("MAX_LENGTH", "256")
 )
 
-TRAIN_EPOCHS = int(
-    os.getenv("TRAIN_EPOCHS", "1")
-)
-
 BATCH_SIZE = int(
     os.getenv("BATCH_SIZE", "1")
 )
@@ -69,11 +65,6 @@ GRAD_ACCUM = int(
 
 LEARNING_RATE = float(
     os.getenv("LEARNING_RATE", "1e-4")
-)
-
-FAST_MODE = os.getenv(
-    "FAST_MODE",
-    "0"
 )
 
 
@@ -120,25 +111,17 @@ def main():
 
     print("\nLoading dataset...\n")
 
+    # ==========================================
+    # FAST TRAINING SUBSET
+    # ==========================================
+
     train_data = load_jsonl(
         DATA_DIR / "tutor_train.jsonl"
-    )
+    )[:500]
 
     val_data = load_jsonl(
         DATA_DIR / "tutor_val.jsonl"
-    )
-
-    # ==============================================
-    # OPTIONAL FAST MODE
-    # ==============================================
-
-    if FAST_MODE == "1":
-
-        train_data = train_data[:2000]
-
-        val_data = val_data[:200]
-
-        print("FAST MODE ENABLED")
+    )[:50]
 
     print(f"Train rows: {len(train_data)}")
 
@@ -161,6 +144,10 @@ def main():
         "validation"
     ].map(format_data)
 
+    # ==========================================
+    # TOKENIZER
+    # ==========================================
+
     print("\nLoading tokenizer...\n")
 
     tokenizer = AutoTokenizer.from_pretrained(
@@ -175,6 +162,10 @@ def main():
 
     print("Tokenizer loaded.")
 
+    # ==========================================
+    # MODEL
+    # ==========================================
+
     print("\nLoading base model...\n")
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -183,9 +174,9 @@ def main():
 
     print("Model loaded.")
 
-    # ==============================================
+    # ==========================================
     # APPLY LORA
-    # ==============================================
+    # ==========================================
 
     print("\nApplying LoRA...\n")
 
@@ -212,9 +203,9 @@ def main():
 
     model.print_trainable_parameters()
 
-    # ==============================================
-    # TOKENIZE
-    # ==============================================
+    # ==========================================
+    # TOKENIZATION
+    # ==========================================
 
     print("\nTokenizing dataset...\n")
 
@@ -244,9 +235,9 @@ def main():
         )
     )
 
-    # ==============================================
-    # TRAINING ARGS
-    # ==============================================
+    # ==========================================
+    # TRAINING ARGUMENTS
+    # ==========================================
 
     training_args = TrainingArguments(
 
@@ -261,16 +252,15 @@ def main():
         gradient_accumulation_steps=
             GRAD_ACCUM,
 
-        num_train_epochs=
-            TRAIN_EPOCHS,
+        max_steps=20,
 
         logging_steps=10,
 
         eval_strategy="steps",
 
-        eval_steps=50,
+        eval_steps=10,
 
-        save_steps=50,
+        save_steps=20,
 
         save_total_limit=1,
 
@@ -302,17 +292,17 @@ def main():
             data_collator,
     )
 
-    # ==============================================
+    # ==========================================
     # TRAIN
-    # ==============================================
+    # ==========================================
 
     print("\nStarting training...\n")
 
     trainer.train()
 
-    # ==============================================
+    # ==========================================
     # EVALUATE
-    # ==============================================
+    # ==========================================
 
     print("\nRunning evaluation...\n")
 
@@ -320,9 +310,9 @@ def main():
 
     print(eval_results)
 
-    # ==============================================
-    # SAVE
-    # ==============================================
+    # ==========================================
+    # SAVE MODEL
+    # ==========================================
 
     print("\nSaving model...\n")
 

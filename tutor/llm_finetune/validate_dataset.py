@@ -94,6 +94,8 @@ def detect_domain(text):
         "stack" in lower
         or "array" in lower
         or "queue" in lower
+        or "tree" in lower
+        or "linked list" in lower
     ):
         return "Data Structures"
 
@@ -104,10 +106,44 @@ def detect_concept(text):
 
     lower = text.lower()
 
+    # ==========================================
+    # EXTRACT FROM:
+    # Concept: XYZ
+    # ==========================================
+
+    if "concept:" in lower:
+
+        try:
+
+            after = text.split(
+                "Concept:",
+                1
+            )[1]
+
+            concept_line = (
+                after.strip()
+                .splitlines()[0]
+                .strip()
+            )
+
+            if concept_line:
+                return concept_line
+
+        except Exception:
+            pass
+
+    # ==========================================
+    # FALLBACK KNOWN CONCEPTS
+    # ==========================================
+
     for concept in KNOWN_CONCEPTS:
 
         if concept.lower() in lower:
             return concept
+
+    # ==========================================
+    # LAST FALLBACK
+    # ==========================================
 
     return text[:50]
 
@@ -130,6 +166,10 @@ def validate_rows(rows):
 
             invalid_rows += 1
             continue
+
+        # ==========================================
+        # REQUIRED FIELD CHECK
+        # ==========================================
 
         for field in REQUIRED_FIELDS:
 
