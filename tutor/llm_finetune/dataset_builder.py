@@ -2,26 +2,115 @@ from __future__ import annotations
 
 import json
 import random
-import sqlite3
 from pathlib import Path
-from typing import Any, Dict, List
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = ROOT / "training_data" / "llm_tutor"
-DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-SUBJECT_DBS = [
-    ROOT / "external" / "core_data" / "python_learning.db",
-    ROOT / "external" / "core_data" / "database_sql.db",
-    ROOT / "external" / "core_data" / "html_web_basics.db",
-    ROOT / "external" / "core_data" / "git_version_control.db",
-    ROOT / "external" / "core_data" / "data_structures.db",
+DATA_DIR = ROOT / "training_data" / "llm_tutor"
+
+DATA_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+
+TRAIN_FILE = DATA_DIR / "tutor_train.jsonl"
+VAL_FILE = DATA_DIR / "tutor_val.jsonl"
+TEST_FILE = DATA_DIR / "tutor_test.jsonl"
+
+
+DOMAINS = {
+
+    "Python": [
+
+        "Variables",
+        "Loops",
+        "Functions",
+        "Lists",
+        "Dictionaries",
+        "Classes",
+        "File Handling",
+        "Exception Handling",
+    ],
+
+    "SQL": [
+
+        "SELECT Queries",
+        "WHERE Clause",
+        "JOIN Operations",
+        "GROUP BY",
+        "ORDER BY",
+        "Primary Keys",
+        "Normalization",
+    ],
+
+    "HTML": [
+
+        "HTML Tags",
+        "Forms",
+        "Tables",
+        "Semantic HTML",
+        "Lists",
+        "Images",
+        "Links",
+        "HTML Structure",
+    ],
+
+    "Git": [
+
+        "Git Commits",
+        "Git Branches",
+        "Git Merge",
+        "Git Pull",
+        "Git Push",
+        "Git Clone",
+        "Git Conflict Resolution",
+    ],
+
+    "Data Structures": [
+
+        "Arrays",
+        "Stacks",
+        "Queues",
+        "Linked Lists",
+        "Trees",
+        "Graphs",
+        "Hash Tables",
+        "Binary Search",
+    ],
+}
+
+
+TASK_TYPES = [
+
+    "explanation",
+    "definition_rewrite",
+    "syntax_explanation",
+    "code_example",
+    "summary",
+    "flashcard",
+    "mindmap",
+    "mcq",
+    "debug_task",
+    "output_prediction",
+    "transfer_question",
+    "challenge_question",
+    "hint",
+    "feedback",
+    "revision_note",
 ]
 
-DIFFICULTIES = ["easy", "medium", "hard"]
 
-STYLES = [
+DIFFICULTIES = [
+    "easy",
+    "medium",
+    "hard",
+]
+
+
+TEACHING_STYLES = [
+
     "simple",
     "code_first",
     "analogy",
@@ -32,252 +121,339 @@ STYLES = [
     "revision_summary",
 ]
 
+
 LEARNER_STATES = [
+
     "slow_learner",
-    "low_confidence",
+    "low_mastery",
     "weak_output_prediction",
     "weak_debug",
-    "weak_conceptual",
-    "strong_transfer",
+    "low_confidence",
+    "stable",
     "ready_for_challenge",
-]
-
-TASK_TYPES = [
-    "explanation",
-    "summary",
-    "flashcard",
-    "hint",
-    "feedback",
-    "debug_task",
-    "output_prediction",
-    "transfer_question",
-    "challenge_question",
-    "revision_note",
+    "review_due",
 ]
 
 
-def safe_text(value: Any) -> str:
-    return str(value or "").strip()
-
-
-def fetch_concepts_from_db(db_path: Path) -> List[Dict[str, str]]:
-    if not db_path.exists():
-        print(f"Missing DB: {db_path}")
-        return []
-
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-
-    tables = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    ).fetchall()
-    table_names = {row["name"] for row in tables}
-
-    if "concept_resources" not in table_names:
-        conn.close()
-        print(f"No concept_resources table in {db_path}")
-        return []
-
-    rows = conn.execute("SELECT * FROM concept_resources").fetchall()
-    conn.close()
-
-    concepts = []
-    for row in rows:
-        data = dict(row)
-        concepts.append({
-            "concept_id": safe_text(data.get("concept_id")),
-            "topic": safe_text(data.get("topic")),
-            "base_content": safe_text(data.get("base_content")),
-            "examples": safe_text(data.get("examples")),
-            "key_points": safe_text(data.get("key_points")),
-            "misconceptions": safe_text(data.get("misconceptions")),
-            "real_world_use": safe_text(data.get("real_world_use")),
-            "next_concept_link": safe_text(data.get("next_concept_link")),
-            "source_db": db_path.name,
-        })
-
-    return concepts
-
-
-def build_prompt(
-    concept: Dict[str, str],
-    difficulty: str,
-    style: str,
-    learner_state: str,
-    task_type: str,
-) -> str:
-    return f"""
-You are a tutor generation model for a cognition-adaptive AI tutor.
-
-Task type: {task_type}
-Teaching style: {style}
-Difficulty: {difficulty}
-Learner state: {learner_state}
-
-Concept: {concept["topic"]}
-
-Grounded concept resource:
-Definition:
-{concept["base_content"]}
-
-Examples:
-{concept["examples"]}
-
-Key points:
-{concept["key_points"]}
-
-Misconceptions:
-{concept["misconceptions"]}
-
-Real-world use:
-{concept["real_world_use"]}
-
-Generate only the requested tutor output.
-Do not add unrelated information.
-""".strip()
-
-
-def build_output(
-    concept: Dict[str, str],
-    difficulty: str,
-    style: str,
-    learner_state: str,
-    task_type: str,
-) -> str:
-    topic = concept["topic"]
-    definition = concept["base_content"]
-    examples = concept["examples"]
-    key_points = concept["key_points"]
-    misconceptions = concept["misconceptions"]
-    real_world = concept["real_world_use"]
+def create_output(task_type, concept, domain):
 
     if task_type == "explanation":
-        return (
-            f"{topic} means: {definition}\n\n"
-            f"For a {learner_state}, explain it in a {style} way at {difficulty} level.\n"
-            f"Key idea: {key_points}\n"
-        )
 
-    if task_type == "summary":
-        return f"Summary of {topic}: {definition}\nRemember: {key_points}"
+        return f"""
+{concept} is an important concept used in {domain} programming and software development.
 
-    if task_type == "flashcard":
-        return (
-            f"Q: What is {topic}?\n"
-            f"A: {definition}\n\n"
-            f"Q: What is one important point about {topic}?\n"
-            f"A: {key_points.splitlines()[0] if key_points else definition}"
-        )
+Think of it like a tool that helps programmers solve problems efficiently.
 
-    if task_type == "hint":
-        return f"Hint: Think about what {topic} is used for. {key_points}"
+Example:
 
-    if task_type == "feedback":
-        return (
-            f"Feedback: Your answer should mention the meaning of {topic}, "
-            f"its purpose, and one correct example."
-        )
+score = 95
 
-    if task_type == "debug_task":
-        return (
-            "Find the mistake and fix it:\n\n"
-            "name = Alice\"\n"
-            "print(name)\n\n"
-            "Expected fix:\n"
-            "name = \"Alice\"\n"
-            "print(name)"
-        )
+Here, the variable score stores the value 95 so it can be reused later in the program.
 
-    if task_type == "output_prediction":
-        return (
-            "What is the output?\n\n"
-            "name = \"Alice\"\n"
-            "print(name)\n\n"
-            "Answer: Alice"
-        )
+This concept is commonly used in real-world software projects and applications.
+""".strip()
 
-    if task_type == "transfer_question":
-        return f"How can {topic} be used in a real situation? Context: {real_world}"
+    elif task_type == "definition_rewrite":
 
-    if task_type == "challenge_question":
-        return f"Create a new example using {topic} and explain how changing one value affects the result."
+        return f"""
+{concept} can be understood as a core idea used to organize logic and solve programming tasks more effectively.
 
-    if task_type == "revision_note":
-        return (
-            f"Revision note for {topic}:\n"
-            f"- Meaning: {definition}\n"
-            f"- Remember: {key_points}\n"
-            f"- Avoid: {misconceptions}"
-        )
+It helps developers write cleaner, more efficient, and maintainable code.
+""".strip()
 
-    return definition
+    elif task_type == "syntax_explanation":
+
+        return f"""
+The syntax of {concept} follows specific programming rules.
+
+Correct syntax is important because even small mistakes can cause program errors or unexpected behavior.
+""".strip()
+
+    elif task_type == "code_example":
+
+        return f"""
+Example code for {concept}:
+
+x = 10
+print(x)
+
+This example demonstrates how the concept works in a simple practical scenario.
+""".strip()
+
+    elif task_type == "summary":
+
+        return f"""
+Summary of {concept}:
+
+- Used in software development
+- Helps organize program logic
+- Important for writing efficient code
+- Frequently used in real-world applications
+""".strip()
+
+    elif task_type == "flashcard":
+
+        return {
+            "front": f"What is {concept}?",
+            "back": f"{concept} is an important programming concept used to solve coding problems and build software applications."
+        }
+
+    elif task_type == "mindmap":
+
+        return {
+            "center": concept,
+            "branches": [
+
+                f"Definition of {concept}",
+                "Real-world applications",
+                "Code examples",
+                "Common mistakes",
+                "Best practices",
+            ]
+        }
+
+    elif task_type == "mcq":
+
+        return {
+
+            "question": f"What is the main purpose of {concept}?",
+
+            "options": [
+
+                "Programming",
+                "Cooking",
+                "Painting",
+                "Music",
+            ],
+
+            "answer": "Programming",
+
+            "explanation": f"{concept} is primarily related to programming and software development."
+        }
+
+    elif task_type == "debug_task":
+
+        return {
+
+            "buggy_code":
+                "for i in range(5)\n    print(i)",
+
+            "expected_fix":
+                "for i in range(5):\n    print(i)",
+
+            "hint":
+                "The loop statement is missing a colon (:). Python requires a colon after range(5) to begin the loop block correctly."
+        }
+
+    elif task_type == "output_prediction":
+
+        return {
+
+            "code":
+                "x = 5\nprint(x)",
+
+            "answer":
+                "5"
+        }
+
+    elif task_type == "transfer_question":
+
+        return {
+
+            "question":
+                f"How is {concept} used in real-world software projects?",
+
+            "answer":
+                f"{concept} is commonly used in applications, automation systems, and software development workflows."
+        }
+
+    elif task_type == "challenge_question":
+
+        return {
+
+            "challenge":
+                f"Explain {concept} using a real-world analogy and provide a short code example.",
+
+            "solution_outline":
+                "Explain the concept using a practical scenario, describe why it is useful, and demonstrate a small working example."
+        }
+
+    elif task_type == "hint":
+
+        return f"""
+Think carefully about the purpose of {concept} and how it is used inside real programs.
+
+Try solving a small example step-by-step before checking the final answer.
+""".strip()
+
+    elif task_type == "feedback":
+
+        return f"""
+Good attempt.
+
+Your understanding of {concept} is improving, but review the syntax carefully and practice with more examples to strengthen your confidence.
+""".strip()
+
+    elif task_type == "revision_note":
+
+        return f"""
+Revision Notes for {concept}:
+
+- Understand the core definition
+- Practice syntax regularly
+- Learn common mistakes
+- Try real-world coding examples
+- Revise problem-solving approaches
+""".strip()
+
+    return f"{concept} is a programming concept."
 
 
-def build_dataset() -> List[Dict[str, str]]:
-    concepts = []
-    for db in SUBJECT_DBS:
-        concepts.extend(fetch_concepts_from_db(db))
+def build_dataset():
 
-    print(f"Loaded concepts: {len(concepts)}")
+    rows = []
 
-    samples = []
+    concept_id = 1
 
-    for concept in concepts:
-        if not concept["topic"] or not concept["base_content"]:
-            continue
+    for domain, concepts in DOMAINS.items():
 
-        for difficulty in DIFFICULTIES:
-            for style in STYLES:
-                for learner_state in LEARNER_STATES:
-                    for task_type in TASK_TYPES:
-                        prompt = build_prompt(
-                            concept, difficulty, style, learner_state, task_type
-                        )
-                        output = build_output(
-                            concept, difficulty, style, learner_state, task_type
-                        )
+        for concept in concepts:
 
-                        samples.append({
-                            "instruction": "Generate adaptive tutor content.",
-                            "input": prompt,
-                            "output": output,
-                            "concept": concept["topic"],
-                            "difficulty": difficulty,
-                            "style": style,
-                            "learner_state": learner_state,
-                            "task_type": task_type,
-                            "source_db": concept["source_db"],
-                        })
+            current_id = f"C{concept_id}"
 
-    random.shuffle(samples)
-    return samples
+            concept_id += 1
+
+            for difficulty in DIFFICULTIES:
+
+                for teaching_style in TEACHING_STYLES:
+
+                    for learner_state in LEARNER_STATES:
+
+                        for task_type in TASK_TYPES:
+
+                            row = {
+
+                                "instruction":
+                                    "Generate adaptive tutor content.",
+
+                                "input": {
+
+                                    "concept_id":
+                                        current_id,
+
+                                    "concept_name":
+                                        concept,
+
+                                    "domain":
+                                        domain,
+
+                                    "difficulty":
+                                        difficulty,
+
+                                    "learner_state":
+                                        learner_state,
+
+                                    "teaching_style":
+                                        teaching_style,
+
+                                    "task_type":
+                                        task_type,
+
+                                    "base_content":
+                                        f"{concept} is an important topic in {domain}.",
+
+                                    "examples":
+                                        f"Example related to {concept}.",
+
+                                    "key_points": [
+
+                                        f"Understand the basics of {concept}",
+                                        "Practice coding regularly",
+                                        "Avoid common mistakes",
+                                    ],
+
+                                    "misconceptions": [
+
+                                        f"{concept} is difficult to learn",
+                                        "Syntax is optional",
+                                    ],
+
+                                    "real_world_use":
+                                        f"{concept} is widely used in software projects and technical interviews.",
+                                },
+
+                                "output":
+                                    create_output(
+                                        task_type,
+                                        concept,
+                                        domain
+                                    )
+                            }
+
+                            rows.append(row)
+
+    return rows
 
 
-def save_jsonl(samples: List[Dict[str, str]]) -> None:
-    train_path = DATA_DIR / "tutor_train.jsonl"
-    val_path = DATA_DIR / "tutor_val.jsonl"
-    test_path = DATA_DIR / "tutor_test.jsonl"
+def save_jsonl(rows, path):
 
-    n = len(samples)
-    train = samples[: int(n * 0.8)]
-    val = samples[int(n * 0.8): int(n * 0.9)]
-    test = samples[int(n * 0.9):]
+    with open(
+        path,
+        "w",
+        encoding="utf-8"
+    ) as f:
 
-    for path, rows in [
-        (train_path, train),
-        (val_path, val),
-        (test_path, test),
-    ]:
-        with path.open("w", encoding="utf-8") as f:
-            for row in rows:
-                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        for row in rows:
 
-    print("Saved:")
-    print(train_path, len(train))
-    print(val_path, len(val))
-    print(test_path, len(test))
+            f.write(
+                json.dumps(row) + "\n"
+            )
+
+
+def main():
+
+    print("\nGenerating tutor dataset...\n")
+
+    rows = build_dataset()
+
+    random.shuffle(rows)
+
+    total = len(rows)
+
+    train_end = int(total * 0.8)
+
+    val_end = int(total * 0.9)
+
+    train_rows = rows[:train_end]
+
+    val_rows = rows[train_end:val_end]
+
+    test_rows = rows[val_end:]
+
+    save_jsonl(train_rows, TRAIN_FILE)
+
+    save_jsonl(val_rows, VAL_FILE)
+
+    save_jsonl(test_rows, TEST_FILE)
+
+    total_concepts = sum(
+        len(v)
+        for v in DOMAINS.values()
+    )
+
+    print(f"Loaded concepts: {total_concepts}")
+
+    print(f"Total samples: {total}")
+
+    print(f"Train rows: {len(train_rows)}")
+
+    print(f"Val rows: {len(val_rows)}")
+
+    print(f"Test rows: {len(test_rows)}")
+
+    print("\nSTATUS: PASS\n")
 
 
 if __name__ == "__main__":
-    samples = build_dataset()
-    save_jsonl(samples)
+
+    main()

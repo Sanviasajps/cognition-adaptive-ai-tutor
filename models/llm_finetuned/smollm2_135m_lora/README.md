@@ -108,3 +108,6 @@ This model is a lightweight research prototype and may:
 ## Final Status
 
 PASS
+### Framework versions
+
+- PEFT 0.19.1

@@ -3,17 +3,25 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from tutor.llm_finetune.pretrained_generator import (
+    generate_tutor_output,
+)
+
 ROOT = Path(__file__).resolve().parents[2]
 
 OUTPUT_DIR = ROOT / "outputs" / "samples"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+OUTPUT_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
 
 TASK_TYPES = [
+
     "explanation",
     "flashcard",
     "mcq",
-    "debug_task",
+    "debug",
     "output_prediction",
     "transfer_question",
     "challenge_question",
@@ -23,117 +31,37 @@ TASK_TYPES = [
 ]
 
 CONCEPTS = [
-    "Python Variables",
-    "Python Loops",
-    "SQL SELECT",
-    "HTML Tags",
-    "Git Commits",
+
+    {
+        "concept_name": "Python Variables",
+        "definition":
+            "Variables are used to store values in Python programs.",
+    },
+
+    {
+        "concept_name": "Python Loops",
+        "definition":
+            "Loops are used to repeat actions multiple times.",
+    },
+
+    {
+        "concept_name": "SQL SELECT",
+        "definition":
+            "SELECT is used to retrieve data from a database table.",
+    },
+
+    {
+        "concept_name": "HTML Tags",
+        "definition":
+            "HTML tags define webpage structure and content.",
+    },
+
+    {
+        "concept_name": "Git Commits",
+        "definition":
+            "Git commits save snapshots of project changes.",
+    },
 ]
-
-
-def build_sample(task_type, concept):
-
-    if task_type == "explanation":
-        return {
-            "task_type": task_type,
-            "concept": concept,
-            "output": f"{concept} is an important programming concept used in software development."
-        }
-
-    elif task_type == "flashcard":
-        return {
-            "task_type": task_type,
-            "concept": concept,
-            "output": {
-                "front": f"What is {concept}?",
-                "back": f"{concept} is a programming concept."
-            }
-        }
-
-    elif task_type == "mcq":
-        return {
-            "task_type": task_type,
-            "concept": concept,
-            "output": {
-                "question": f"What is {concept} mainly used for?",
-                "options": [
-                    "Programming",
-                    "Cooking",
-                    "Drawing",
-                    "Gaming"
-                ],
-                "answer": "Programming",
-                "explanation": f"{concept} is related to programming."
-            }
-        }
-
-    elif task_type == "debug_task":
-        return {
-            "task_type": task_type,
-            "concept": concept,
-            "output": {
-                "buggy_code": "for i in range(5)\n    print(i)",
-                "expected_fix": "for i in range(5):\n    print(i)",
-                "hint": "Missing colon after range(5)"
-            }
-        }
-
-    elif task_type == "output_prediction":
-        return {
-            "task_type": task_type,
-            "concept": concept,
-            "output": {
-                "code": "x = 5\nprint(x)",
-                "answer": "5"
-            }
-        }
-
-    elif task_type == "transfer_question":
-        return {
-            "task_type": task_type,
-            "concept": concept,
-            "output": {
-                "question": f"How is {concept} used in real projects?",
-                "answer": f"{concept} is commonly used in software systems."
-            }
-        }
-
-    elif task_type == "challenge_question":
-        return {
-            "task_type": task_type,
-            "concept": concept,
-            "output": {
-                "challenge": f"Explain {concept} with a real-world example.",
-                "solution_outline": "Use a simple practical scenario."
-            }
-        }
-
-    elif task_type == "hint":
-        return {
-            "task_type": task_type,
-            "concept": concept,
-            "output": f"Think carefully about how {concept} works."
-        }
-
-    elif task_type == "feedback":
-        return {
-            "task_type": task_type,
-            "concept": concept,
-            "output": "Good attempt. Review the syntax carefully."
-        }
-
-    elif task_type == "revision_note":
-        return {
-            "task_type": task_type,
-            "concept": concept,
-            "output": f"Remember the key rules of {concept}."
-        }
-
-    return {
-        "task_type": task_type,
-        "concept": concept,
-        "output": "Sample output"
-    }
 
 
 def generate_samples(output_file):
@@ -142,41 +70,74 @@ def generate_samples(output_file):
 
     for task in TASK_TYPES:
 
-        for concept in CONCEPTS:
+        for concept_resource in CONCEPTS:
 
-            sample = build_sample(task, concept)
+            generated = generate_tutor_output(
+
+                concept_resource,
+
+                "easy",
+
+                "slow learner",
+
+                "simple",
+
+                task,
+            )
+
+            sample = {
+
+                "task_type": task,
+
+                "concept":
+                    concept_resource[
+                        "concept_name"
+                    ],
+
+                "output": generated,
+            }
 
             samples.append(sample)
 
-    with open(output_file, "w", encoding="utf-8") as f:
+    with open(
+        output_file,
+        "w",
+        encoding="utf-8"
+    ) as f:
 
         for sample in samples:
 
-            f.write(json.dumps(sample) + "\n")
+            f.write(
+                json.dumps(sample) + "\n"
+            )
 
     return len(samples)
 
 
 def main():
 
-    smol_path = OUTPUT_DIR / "smollm2_135m_samples.jsonl"
+    print("\nGenerating REAL model samples...\n")
 
-    qwen_path = OUTPUT_DIR / "qwen_coder_05b_samples.jsonl"
+    smollm_path = (
+        OUTPUT_DIR
+        / "smollm2_135m_samples.jsonl"
+    )
 
-    smol_count = generate_samples(smol_path)
+    count = generate_samples(
+        smollm_path
+    )
 
-    qwen_count = generate_samples(qwen_path)
+    print(
+        f"Generated samples: {count}"
+    )
 
-    print("\nSample generation completed.\n")
+    print("\nSaved file:")
 
-    print(f"SmolLM2 samples: {smol_count}")
-    print(f"Qwen samples: {qwen_count}")
+    print(smollm_path)
 
-    print("\nSaved files:")
-
-    print(smol_path)
-    print(qwen_path)
+    print("\nDONE\n")
 
 
 if __name__ == "__main__":
+
     main()

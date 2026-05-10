@@ -29,19 +29,17 @@ DATA_DIR = ROOT / "training_data" / "llm_tutor"
 
 MODEL_NAME = os.getenv(
     "TUTOR_BASE_MODEL",
-    "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+    "HuggingFaceTB/SmolLM2-135M"
 )
 
 OUTPUT_DIR = Path(
-
     os.getenv(
         "TUTOR_OUTPUT_DIR",
-
         str(
             ROOT
             / "models"
             / "llm_finetuned"
-            / "qwen_coder_05b_lora"
+            / "smollm2_135m_lora"
         )
     )
 )
@@ -56,19 +54,21 @@ MAX_LENGTH = int(
 )
 
 BATCH_SIZE = int(
-    os.getenv("BATCH_SIZE", "1")
+    os.getenv("BATCH_SIZE", "2")
 )
 
 GRAD_ACCUM = int(
-    os.getenv("GRAD_ACCUM", "8")
+    os.getenv("GRAD_ACCUM", "4")
 )
 
 LEARNING_RATE = float(
-    os.getenv("LEARNING_RATE", "1e-4")
+    os.getenv("LEARNING_RATE", "2e-4")
 )
 
 
 def load_jsonl(path):
+
+    rows = []
 
     with open(
         path,
@@ -76,13 +76,40 @@ def load_jsonl(path):
         encoding="utf-8"
     ) as f:
 
-        return [
-            json.loads(line)
-            for line in f
-        ]
+        for line in f:
+
+            row = json.loads(line)
+
+            # ======================================
+            # FORCE OUTPUT TO STRING
+            # ======================================
+
+            if not isinstance(
+                row["output"],
+                str
+            ):
+
+                row["output"] = json.dumps(
+                    row["output"],
+                    ensure_ascii=False
+                )
+
+            rows.append(row)
+
+    return rows
 
 
 def format_data(example):
+
+    input_data = example["input"]
+
+    if not isinstance(input_data, str):
+
+        input_data = json.dumps(
+            input_data,
+            ensure_ascii=False,
+            indent=2
+        )
 
     return {
 
@@ -90,7 +117,7 @@ def format_data(example):
 {example['instruction']}
 
 ### Input
-{example['input']}
+{input_data}
 
 ### Response
 {example['output']}"""
@@ -111,9 +138,9 @@ def main():
 
     print("\nLoading dataset...\n")
 
-    # ==========================================
+    # ======================================
     # FAST TRAINING SUBSET
-    # ==========================================
+    # ======================================
 
     train_data = load_jsonl(
         DATA_DIR / "tutor_train.jsonl"
@@ -144,9 +171,9 @@ def main():
         "validation"
     ].map(format_data)
 
-    # ==========================================
+    # ======================================
     # TOKENIZER
-    # ==========================================
+    # ======================================
 
     print("\nLoading tokenizer...\n")
 
@@ -162,9 +189,9 @@ def main():
 
     print("Tokenizer loaded.")
 
-    # ==========================================
+    # ======================================
     # MODEL
-    # ==========================================
+    # ======================================
 
     print("\nLoading base model...\n")
 
@@ -174,9 +201,9 @@ def main():
 
     print("Model loaded.")
 
-    # ==========================================
+    # ======================================
     # APPLY LORA
-    # ==========================================
+    # ======================================
 
     print("\nApplying LoRA...\n")
 
@@ -203,9 +230,9 @@ def main():
 
     model.print_trainable_parameters()
 
-    # ==========================================
-    # TOKENIZATION
-    # ==========================================
+    # ======================================
+    # TOKENIZE DATASET
+    # ======================================
 
     print("\nTokenizing dataset...\n")
 
@@ -235,9 +262,9 @@ def main():
         )
     )
 
-    # ==========================================
-    # TRAINING ARGUMENTS
-    # ==========================================
+    # ======================================
+    # TRAINING ARGS
+    # ======================================
 
     training_args = TrainingArguments(
 
@@ -292,17 +319,17 @@ def main():
             data_collator,
     )
 
-    # ==========================================
+    # ======================================
     # TRAIN
-    # ==========================================
+    # ======================================
 
     print("\nStarting training...\n")
 
     trainer.train()
 
-    # ==========================================
+    # ======================================
     # EVALUATE
-    # ==========================================
+    # ======================================
 
     print("\nRunning evaluation...\n")
 
@@ -310,9 +337,9 @@ def main():
 
     print(eval_results)
 
-    # ==========================================
-    # SAVE MODEL
-    # ==========================================
+    # ======================================
+    # SAVE
+    # ======================================
 
     print("\nSaving model...\n")
 
